@@ -2,6 +2,7 @@ exports.SportsEquipment = function() {
 	const equipments = {
 		'General': 2,
 		'Treadmill': 4,
+		'Crosstrainer': 6,
 		'fromId': function(id) {
 				for (let [key, value] of Object.entries(equipments)) {
 					if (value === id) {
@@ -43,13 +44,16 @@ const Mode = function() {
 		    'Summary': 4,
 		    'Settings': 7,
 		    'MissingSafetyKey': 8,
+		    'Running': 10,
 		    'fromId': function(id) {
+//console.log("id: ",id);
 				for (let [key, value] of Object.entries(modes)) {
+//console.log("value: ",value); 
 					if (value === id) {
 						return key;
 					}
 				}
-				return 'Unkown';
+				return 'Unknown';
 		}
 	}
 	return modes;
@@ -328,9 +332,9 @@ exports.Capability = function() {
 		},
 		'Distance': {
 			id: 77,
-			characteristic: 6,
+			characteristic: 6,		// was 6, 
 		},
-		'Time': {
+		'Uptime': {
 			id: 78,
 			characteristic: 11,
 		},
