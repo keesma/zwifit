@@ -1,8 +1,10 @@
 # Zwifit
 
-**Changes compared to the original:** I have extended the functionality from dawsontoth with support for the Elliptical ProForm Endurance 320 E. 
+##Changes compared to the original:## I have extended the functionality from dawsontoth with support for the Elliptical ProForm Endurance 320 E. 
 Besides that I have added that the information from the Proform is shared using mqtt. In this I can store the info and make graphs.
 The ProForm Endurance 320 E has some other data fields than other iFit enabled equipment.
+
+
 
 Welcome to the cryptically named Zwifit! This NodeJS app joins Zwift with treadmills running iFit® with Wi-Fi/Bluetooth.
 
