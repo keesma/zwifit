@@ -20,6 +20,13 @@ client.on('connect', () => {
 	console.log('MQTT connected');
 })
 
+function mqttpublish(topic, value) {
+        let t = 'devices/ifitsync/';
+	t = t.concat(topic);
+	client.publish(t, value, { retain:true });
+	return 0
+}
+
 
 let sportsEquipment = undefined;
 let rx = undefined;
@@ -52,7 +59,7 @@ exports.disconnect = disconnect;
 
 function peripheralDisconnected() {
 	console.log('Disonnected :-(');
-	client.publish('devices/ifitsync/status', 'offline');
+	mqttpublish('status', 'offline');
 
 	current.connected = false;
 	current.mode = Constants.Mode.Idle;
@@ -154,8 +161,8 @@ function initializeBle() {
 					+ prettyPrintedBleCode()
 					+ ' and name '
 					+ settings.bleDeviceName);
-			client.publish('devices/ifitsync/ble-devicename', settings.bleDeviceName);
-			client.publish('devices/ifitsync/ble-code', prettyPrintedBleCode());
+			mqttpublish('ble-devicename', settings.bleDeviceName);
+			mqttpublish('ble-code', prettyPrintedBleCode());
 			sportsEquipment = peripheral;
 			
 			peripheral.on('disconnect', peripheralDisconnected);
@@ -183,14 +190,14 @@ function exploreSportsEquipment() {
 	sportsEquipment.connect(function(error) {
 		if (error) {
 			console.log('Could not connect to fitness equipment:', error);
-			client.publish('devices/ifitsync/status', 'offline');
+			mqttpublish('status', 'offline');
 			return;
 		}
 		
 		request.initTxAndRx(sportsEquipment, (error, newTx, newRx) => {
 			if (error) {
 				console.log(error);
-				client.publish('devices/ifitsync/status', 'offline');
+				mqttpublish('status', 'offline');
 				sportsEquipment.disconnect();
 				return;
 			}
@@ -208,7 +215,7 @@ function loadEquipmentInformation() {
 	request.getEquipmentInformation(tx, rx, function(data, error) {
 		if (error) {
 			console.log('Could not get equipment information:', error);
-			client.publish('devices/ifitsync/status', 'offline');
+			mqttpublish('status', 'offline');
 			sportsEquipment.disconnect();
 		} else {
 			equipmentInformation = data;
@@ -223,21 +230,21 @@ function loadSupportedCapabilities() {
 	request.getSupportedCapabilities(equipmentInformation, tx, rx, function(supportedCapabilities, error) {
 		if (error) {
 			console.log('Could not get supported equipments:', error);
-			client.publish('devices/ifitsync/status', 'offline');
+			mqttpublish('status', 'offline');
 			sportsEquipment.disconnect();
 		} else {
 			equipmentInformation = {
 					...equipmentInformation,
 					...supportedCapabilities
 				};
-					client.publish('devices/ifitsync/equipment-type', Constants.SportsEquipment.fromId(equipmentInformation.equipment));
+					mqttpublish('equipment-type', Constants.SportsEquipment.fromId(equipmentInformation.equipment));
 //for (var i = 0; i < 10; i++) {
 //    console.log(equipmentInformation.characteristics[i]);
 //    //Do something
 //}
-					client.publish('devices/ifitsync/mode', Constants.Mode.fromId(current.mode));
-//			client.publish('devices/ifitsync/capabilities/metric', equipmentInformation.Metric);
-//			client.publish('devices/ifitsync/capabilities', equipmentInformation);
+					mqttpublish('mode', Constants.Mode.fromId(current.mode));
+//			mqttpublish('capabilities/metric', equipmentInformation.Metric);
+//			mqttpublish('capabilities', equipmentInformation);
 			enable();
 		}
 	});
@@ -249,7 +256,7 @@ function enable() {
 	request.enable(equipmentInformation, tx, rx, function(data, error) {
 		if (error) {
 			console.log('Failed to enable:', error);
-			client.publish('devices/ifitsync/status', 'offline');
+			mqttpublish('status', 'offline');
 			sportsEquipment.disconnect();
 		} else {
 			equipmentInformation = {
@@ -275,7 +282,7 @@ function readMaxAndMin() {
 	request.writeAndRead(equipmentInformation, undefined, reads, tx, rx, function(data, error) {
 		if (error) {
 			console.log('Failed to read max and mins:', error);
-			client.publish('devices/ifitsync/status', 'offline');
+			mqttpublish('status', 'offline');
 			sportsEquipment.disconnect();
 		} else {
 			equipmentInformation = {
@@ -283,7 +290,9 @@ function readMaxAndMin() {
 					...data
 				};
 			console.log('Connected :-)');
-			client.publish('devices/ifitsync/status', 'online');
+			mqttpublish('status', 'online');
+			mqttpublish('capabilities/min-kmph', data.MinKph.toString());
+			mqttpublish('capabilities/max-kmph', data.MaxKph.toString());
 			current.connected = true;
 			readCurrentTimer = setInterval(readCurrentValues, 500);
 		}
@@ -327,9 +336,9 @@ function readCurrentValues() {
 				current.mode = data.Mode;
 				const changes = {};
 
+				let speed;
 				if (current.mode == Constants.Mode.Running || current.mode == Constants.Mode.Active) {
-					client.publish('devices/ifitsync/mode', Constants.Mode.fromId(current.mode));
-					let speed;
+					mqttpublish('mode', Constants.Mode.fromId(current.mode));
 					if (equipmentInformation.Metric === settings.metric) {
 						speed = safeParseFloat(data.CurrentKph);
 					} else if (equipmentInformation.Metric) {
@@ -348,31 +357,31 @@ function readCurrentValues() {
 						}
 					}
 					changes[settings.metric ? 'kph' : 'mph'] = speed;
-					client.publish('devices/ifitsync/speed', speed.toFixed(2));
-					client.publish('devices/ifitsync/speed/$unit', settings.metric ? 'km/h' : 'mi/h');
+					mqttpublish('speed', speed.toFixed(2));
+					mqttpublish('speed/$unit', settings.metric ? 'km/h' : 'mi/h');
 	
 					distance = safeParseFloat(data.CurrentDistance);
-					client.publish('devices/ifitsync/distance', distance.toFixed(0));
-					client.publish('devices/ifitsync/distance/$unit', settings.metric ? 'm' : 'ft');
+					mqttpublish('distance', distance.toFixed(0));
+					mqttpublish('distance/$unit', settings.metric ? 'm' : 'ft');
 				
 					calories = safeParseFloat(data.CurrentCalories);
-					client.publish('devices/ifitsync/calories', calories.toFixed(2));
-					client.publish('devices/ifitsync/calories/$unit', 'kcal');
+					mqttpublish('calories', calories.toFixed(2));
+					mqttpublish('calories/$unit', 'kcal');
 
 					changes['incline'] = safeParseFloat(data.CurrentIncline);
 //		for crosstrainer this does not work.
-//					client.publish('devices/ifitsync/incline', data.CurrentIncline);
+//					mqttpublish('incline', data.CurrentIncline);
 					zeroSpeedSend = false;
 					previousMode = current.mode;
 				} else {
 					if (!zeroSpeedSend) {
-						client.publish('devices/ifitsync/speed', "0.0");
+						mqttpublish('speed', "0.0");
 						zeroSpeedSend = true;
 						speed = 0;
 						changes[settings.metric ? 'kph' : 'mph'] = speed;
 					}
 					if (previousMode != current.mode) {
-						client.publish('devices/ifitsync/mode', Constants.Mode.fromId(current.mode));
+						mqttpublish('mode', Constants.Mode.fromId(current.mode));
 						previousMode = current.mode;
 					}
 	
@@ -380,8 +389,8 @@ function readCurrentValues() {
 				if (current.mode != Constants.Mode.Idle) {
 					if ((data.Pulse && (data.Pulse.source != Constants.PulseSource.fromId(Constants.PulseSource.No))) || firstNoPulse) {
 						changes['hr'] = data.Pulse.pulse;
-						client.publish('devices/ifitsync/heart-rate/pulse', data.Pulse.pulse.toString());
-						client.publish('devices/ifitsync/heart-rate/source', data.Pulse.source);
+						mqttpublish('heart-rate/pulse', data.Pulse.pulse.toString());
+						mqttpublish('heart-rate/source', data.Pulse.source);
 						if  (data.Pulse && (data.Pulse.source == Constants.PulseSource.fromId(Constants.PulseSource.No)) && firstNoPulse) {
 							firstNoPulse = false;;
 						} else {
@@ -392,13 +401,11 @@ function readCurrentValues() {
 					}
 				
 					totaltime = safeParseFloat(data.TotalTime);
-					client.publish('devices/ifitsync/total-time', totaltime.toFixed(0));
-					client.publish('devices/ifitsync/total-time/$unit', 's');
+					mqttpublish('total-time', totaltime.toFixed(0));
+					mqttpublish('total-time/$unit', 's');
 					pausedtime = safeParseFloat(data.PausedTime);
-					client.publish('devices/ifitsync/paused-time', pausedtime.toFixed(0));
-					client.publish('devices/ifitsync/paused-time/$unit', 's');
-					client.publish('devices/ifitsync/capabilities/min-kmph', data.MinKph.toString());
-					client.publish('devices/ifitsync/capabilities/max-kmph', data.MaxKph.toString());
+					mqttpublish('paused-time', pausedtime.toFixed(0));
+					mqttpublish('paused-time/$unit', 's');
 				}
 				events.fire('changeReceived', changes);
 	
