@@ -52,7 +52,7 @@ async function setup(ready) {
 				console.log('The code must be of exact 4 characters!');
 				return false;
 			}
-			settings.bleCode = settings.bleCode.substring(2, 4) + settings.bleCode.substring(0, 2);
+			settings.bleCode = settings.bleCode.substring(2, 4).toLowerCase() + settings.bleCode.substring(0, 2).toLowerCase();
 			showBleActivationMessage();
 			return false;
 		} else {
