@@ -47,7 +47,7 @@ async function setup(ready) {
 
 		settings.ble = await isYes(await question('Is your treadmill Bluetooth (Y) or WIFI (N) based? (Answer Y or N)'));
 		if (settings.ble) {
-			settings.bleCode = await question('Switch on your treadmill, press the connect button and enter the code shown on the display');
+			settings.bleCode = await question('Switch on your treadmill, press the connect button and enter the lowercase code shown on the display');
 			if (settings.bleCode.length != 4) {
 				console.log('The code must be of exact 4 characters!');
 				return false;
